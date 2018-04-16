@@ -75,11 +75,18 @@ class Todos {
   get totalDone() {
     return [...this.todos.values()].filter(({ done }) => done).length;
   }
+
+  allDone = () => {
+    for (const todo of this.todos.values()) {
+      todo.done = true;
+    }
+  };
 }
 decorate(Todos, {
   todo: observable,
   total: computed,
-  totalDone: computed
+  totalDone: computed,
+  allDone: action
 });
 
 export { Todo, Todos };

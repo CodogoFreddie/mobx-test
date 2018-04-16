@@ -35,8 +35,15 @@ const App = observer(() => (
     ))}
 
     <div>
+      {todoContainer.totalDone} / {todoContainer.total}
+    </div>
+
+    <div
+      onClick={() => todoContainer.allDone()}
+      style={{ backgroundColor: "green" }}
+    >
       {" "}
-      {todoContainer.totalDone} / {todoContainer.total}{" "}
+      ALL DONE{" "}
     </div>
   </div>
 ));
