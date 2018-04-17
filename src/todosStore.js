@@ -1,35 +1,46 @@
 import { reaction, observable, decorate, action, computed } from "mobx";
 
-const getTodoData = id =>
-  new Promise(done => {
+import { usersStore } from "./usersStore";
+
+const getTodoData = id => {
+  fetch(`https://www.example.com/get-todo/${id}`);
+
+  return new Promise(done => {
     setTimeout(done, 500 + Math.random() * 1000, {
       done: id === 2,
-      text: `this is the text for todo ${id}`
+      text: `this is the text for todo ${id}`,
+      authorId: id % 2 ? "aaa" : "bbb"
     });
   });
+};
 
 class Todo {
   id;
   done;
   text;
+  author;
   loading = true;
   shouldSave = true;
 
   constructor(id) {
     this.id = id;
 
-    getTodoData(id).then(({ done, text }) => {
+    getTodoData(id).then(({ done, text, authorId }) => {
       this.shouldSave = false;
-      this.loading = false;
+
       this.done = done;
       this.text = text;
+      this.author = usersStore.getUser(authorId);
+
+      this.loading = false;
       this.shouldSave = true;
     });
 
     reaction(
-      () => this.constructForAPI(),
+      () => this.constructForAPI,
       () => {
-        this.shouldSave && console.log(`update API for todo ${id} `);
+        this.shouldSave &&
+          console.log(`update API for todo ${id} `, this.constructForAPI);
       }
     );
   }
@@ -42,16 +53,21 @@ class Todo {
     this.text = text;
   };
 
-  constructForAPI = () => ({
-    done: this.done,
-    text: this.text
-  });
+  get constructForAPI() {
+    return {
+      done: this.done,
+      text: this.text
+    };
+  }
 }
 decorate(Todo, {
   done: observable,
   text: observable,
   loading: observable,
-  constructForAPI: observable,
+  author: observable,
+
+  constructForAPI: computed,
+
   toggleDone: action,
   setText: action
 });
@@ -84,9 +100,12 @@ class Todos {
 }
 decorate(Todos, {
   todo: observable,
+  getTodo: action,
   total: computed,
   totalDone: computed,
   allDone: action
 });
 
-export { Todo, Todos };
+const todosStore = new Todos();
+
+export { Todo, Todos, todosStore };
