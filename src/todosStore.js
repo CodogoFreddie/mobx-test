@@ -1,6 +1,6 @@
-import { reaction, observable, decorate, action, computed } from "mobx";
+import {reaction, observable, action, computed} from 'mobx';
 
-import { usersStore } from "./usersStore";
+import {usersStore} from './usersStore';
 
 const getTodoData = id => {
   fetch(`https://www.example.com/get-todo/${id}`);
@@ -9,103 +9,125 @@ const getTodoData = id => {
     setTimeout(done, 500 + Math.random() * 1000, {
       done: id === 2,
       text: `this is the text for todo ${id}`,
-      authorId: id % 2 ? "aaa" : "bbb"
+      authorId: id % 2 ? 'aaa' : 'bbb',
     });
   });
 };
 
 class Todo {
-  id;
-  done;
-  text;
-  author;
-  loading = true;
+  @observable id;
+  @observable done;
+  @observable text;
+  @observable author;
+  @observable loading = true;
+
   shouldSave = true;
 
-  constructor(id) {
-    this.id = id;
-
-    getTodoData(id).then(({ done, text, authorId }) => {
-      this.shouldSave = false;
-
-      this.done = done;
-      this.text = text;
-      this.author = usersStore.getUser(authorId);
-
-      this.loading = false;
-      this.shouldSave = true;
-    });
+  constructor({id, data}) {
+    if (id) {
+      this.id = id;
+      this.loadDataFromServer();
+    } else {
+      this.hydrate(data);
+    }
 
     reaction(
       () => this.constructForAPI,
       () => {
         this.shouldSave &&
-          console.log(`update API for todo ${id} `, this.constructForAPI);
-      }
+          console.log(`update API for todo ${this.id} `, this.constructForAPI);
+      },
     );
   }
 
+  @computed
+  get constructForAPI() {
+    return {
+      done: this.done,
+      text: this.text,
+    };
+  }
+
+  @action
+  loadDataFromServer = () => {
+    getTodoData(this.id).then(({done, text, authorId}) => {
+      this.shouldSave = false;
+
+      this.done = done;
+      this.text = text;
+      this.author = usersStore.getUserById(authorId);
+
+      this.loading = false;
+      this.shouldSave = true;
+    });
+  };
+
+  @action
+  hydrate = ({id, done, text, author, loading}) => {
+    this.shouldSave = false;
+
+    this.id = id;
+    this.done = done;
+    this.text = text;
+    this.loading = loading;
+
+    if (author) {
+      usersStore.hydrate([author]);
+      this.author = usersStore.getUserById(author.id);
+    }
+
+    this.shouldSave = true;
+  };
+
+  @action
   toggleDone = () => {
     this.done = !this.done;
   };
 
+  @action
   setText = text => {
     this.text = text;
   };
-
-  get constructForAPI() {
-    return {
-      done: this.done,
-      text: this.text
-    };
-  }
 }
-decorate(Todo, {
-  done: observable,
-  text: observable,
-  loading: observable,
-  author: observable,
-
-  constructForAPI: computed,
-
-  toggleDone: action,
-  setText: action
-});
 
 class Todos {
-  todos = new Map();
+  @observable todos = new Map();
 
-  getTodo(id) {
+  @computed
+  get total() {
+    return [...this.todos.values()].filter(({loading}) => !loading).length;
+  }
+
+  @computed
+  get totalDone() {
+    return [...this.todos.values()].filter(({done}) => done).length;
+  }
+
+  @action
+  getTodoById = id => {
     if (this.todos.has(id)) {
       return this.todos.get(id);
     } else {
-      this.todos.set(id, new Todo(id));
+      this.todos.set(id, new Todo({id}));
       return this.todos.get(id);
     }
-  }
+  };
 
-  get total() {
-    return [...this.todos.values()].filter(({ loading }) => !loading).length;
-  }
-
-  get totalDone() {
-    return [...this.todos.values()].filter(({ done }) => done).length;
-  }
-
+  @action
   allDone = () => {
     for (const todo of this.todos.values()) {
       todo.done = true;
     }
   };
+
+  @action
+  hydrate = todos => {
+    todos.forEach(todo => {
+      this.todos.set(todo.id, new Todo({data: todo}));
+    });
+  };
 }
-decorate(Todos, {
-  todo: observable,
-  getTodo: action,
-  total: computed,
-  totalDone: computed,
-  allDone: action
-});
 
 const todosStore = new Todos();
 
-export { Todo, Todos, todosStore };
+export {Todo, Todos, todosStore};

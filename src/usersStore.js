@@ -1,54 +1,66 @@
-import { reaction, observable, decorate, action, computed } from "mobx";
+import {observable, decorate, action} from 'mobx';
 
 const getUserData = id => {
   fetch(`https://www.example.com/get-user/${id}`);
 
   return new Promise(done => {
     setTimeout(done, 500 + Math.random() * 1000, {
-      name: id === "aaa" ? "Freddie" : "Marcelo"
+      name: id === 'aaa' ? 'Freddie' : 'Marcelo',
     });
   });
 };
 
 class User {
-  id;
-  name;
-  loading = true;
+  @observable id;
+  @observable name;
+  @observable loading = true;
 
-  constructor(id) {
-    this.id = id;
+  constructor({id, data}) {
+    if (id) {
+      this.id = id;
+      this.loadDataFromServer();
+    } else {
+      this.hydrate(data);
+    }
+  }
 
-    getUserData(id).then(({ name }) => {
-      console.log("then", name);
-
+  @action
+  loadDataFromServer = () => {
+    getUserData(this.id).then(({name}) => {
       this.name = name;
 
       this.loading = false;
     });
-  }
+  };
+
+  @action
+  hydrate = ({name, loading}) => {
+    this.name = name;
+    this.loading = loading;
+  };
 }
-decorate(User, {
-  name: observable,
-  loading: observable
-});
 
 class Users {
-  users = new Map();
+  @observable users = new Map();
 
-  getUser(id) {
+  @action
+  getUserById = id => {
     if (this.users.has(id)) {
       return this.users.get(id);
     } else {
-      this.users.set(id, new User(id));
+      this.users.set(id, new User({id}));
       return this.users.get(id);
     }
-  }
+  };
+
+  @action
+  hydrate = users => {
+    users.forEach(user => {
+      this.users.set(user.id, new User({data: user}));
+    });
+  };
 }
-decorate(User, {
-  users: observable,
-  getUser: action
-});
 
 const usersStore = new Users();
 
-export { User, Users, usersStore };
+export {User, Users, usersStore};
