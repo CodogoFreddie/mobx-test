@@ -1,5 +1,6 @@
 import React, { Fragment } from "react";
 import { observer } from "mobx-react";
+import DevTools from "mobx-react-devtools";
 
 import { todosStore, usersStore } from "./store";
 
@@ -83,6 +84,7 @@ const TodoComponent = observer(({ id }) => {
 
 const App = observer(() => (
   <div style={{ backgroundColor: "red", padding: "1em" }}>
+    <DevTools />
     {[...todosStore.todos.entries()].map(([id]) => (
       <TodoComponent key={id} id={id} />
     ))}
