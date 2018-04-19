@@ -1,5 +1,7 @@
 import { reaction, observable, action, computed } from "mobx";
 
+import { createTransformer } from "mobx-utils";
+
 import { usersStore } from "./usersStore";
 
 const getTodoData = id => {
@@ -9,7 +11,7 @@ const getTodoData = id => {
     setTimeout(done, 500 + Math.random() * 1000, {
       done: id === 2,
       text: `this is the text for todo ${id}`,
-      authorId: id === 5 ? null : id % 2 ? "aaa" : "bbb"
+      authorId: id > 3 ? null : id % 2 ? "aaa" : "bbb"
     });
   });
 };
@@ -31,6 +33,7 @@ class Todo {
       this.hydrate(data);
     }
 
+    //save this todo to the api when it changes
     reaction(
       () => this.constructForAPI,
       () => {
@@ -44,7 +47,8 @@ class Todo {
   get constructForAPI() {
     return {
       done: this.done,
-      text: this.text
+      text: this.text,
+      authorId: this.authorId
     };
   }
 
@@ -104,18 +108,24 @@ class Todos {
     return [...this.todos.values()].filter(({ done }) => done).length;
   }
 
-  @action
+  getTodosByAuthorId = createTransformer(authorId => {
+    const acc = [];
+
+    for (const todo of todosStore.todos.values()) {
+      if (todo.authorId === authorId) {
+        acc.push(todo);
+      }
+    }
+
+    return acc;
+  });
+
   getTodoById = id => {
     if (!id) {
       return null;
     }
 
-    if (this.todos.has(id)) {
-      return this.todos.get(id);
-    } else {
-      this.todos.set(id, new Todo({ id }));
-      return this.todos.get(id);
-    }
+    return this.todos.get(id) || this.todos.set(id, new Todo({ id })).get(id);
   };
 
   @action

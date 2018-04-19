@@ -1,4 +1,6 @@
-import { observable, decorate, action } from "mobx";
+import { observable, action, computed } from "mobx";
+
+import { todosStore } from "./todosStore";
 
 const getUserData = id => {
   fetch(`https://www.example.com/get-user/${id}`);
@@ -22,6 +24,11 @@ class User {
     } else {
       this.hydrate(data);
     }
+  }
+
+  @computed
+  get todos() {
+    return todosStore.getTodosByAuthorId(this.id);
   }
 
   @action
@@ -49,12 +56,7 @@ class Users {
       return null;
     }
 
-    if (this.users.has(id)) {
-      return this.users.get(id);
-    } else {
-      this.users.set(id, new User({ id }));
-      return this.users.get(id);
-    }
+    return this.users.get(id) || this.users.set(id, new User({ id })).get(id);
   };
 
   @action

@@ -1,25 +1,24 @@
 import React, { Fragment } from "react";
 import { observer } from "mobx-react";
 
-import { todosStore } from "./todosStore";
-import { usersStore } from "./usersStore";
+import { todosStore, usersStore } from "./store";
 
 if (false) {
   todosStore.hydrate([
     {
-      id: "mock_todo_id_1",
+      id: 1,
       done: true,
       text: "this is a hydrated thing",
       authorId: "mock_author_id_1"
     },
     {
-      id: "mock_todo_id_2",
+      id: 2,
       done: false,
       text: "this is another hydrated thing",
       authorId: "mock_author_id_2"
     },
     {
-      id: "mock_todo_id_3",
+      id: 3,
       loading: true
     }
   ]);
@@ -42,33 +41,50 @@ if (false) {
   todosStore.getTodoById(5);
 }
 
-const AuthorComponent = observer(({ author }) => (
-  <div>Author: {author.loading ? "loading..." : author.name}</div>
-));
+const AuthorComponent = observer(
+  ({ author }) => (
+    console.log(author.todos),
+    (
+      <div>
+        Author: {author.loading ? "loading..." : author.name} ({
+          author.todos.filter(({ done }) => done).length
+        }{" "}
+        / {author.todos.length})
+      </div>
+    )
+  )
+);
 
-const TodoComponent = observer(({ todo }) => (
-  <div
-    style={{
-      margin: "1em",
-      backgroundColor: todo.done ? "coral" : "lightgrey"
-    }}
-  >
-    {todo.loading ? (
-      "loading..."
-    ) : (
-      <Fragment>
-        <div onClick={todo.toggleDone}>{todo.done ? "done" : "not done"}</div>
-        <input onChange={e => todo.setText(e.target.value)} value={todo.text} />
-        {todo.author && <AuthorComponent author={todo.author} />}
-      </Fragment>
-    )}
-  </div>
-));
+const TodoComponent = observer(({ id }) => {
+  const todo = todosStore.getTodoById(id);
+
+  return (
+    <div
+      style={{
+        margin: "1em",
+        backgroundColor: todo.done ? "coral" : "lightgrey"
+      }}
+    >
+      {todo.loading ? (
+        "loading..."
+      ) : (
+        <Fragment>
+          <div onClick={todo.toggleDone}>{todo.done ? "done" : "not done"}</div>
+          <input
+            onChange={e => todo.setText(e.target.value)}
+            value={todo.text}
+          />
+          {todo.author && <AuthorComponent author={todo.author} />}
+        </Fragment>
+      )}
+    </div>
+  );
+});
 
 const App = observer(() => (
   <div style={{ backgroundColor: "red", padding: "1em" }}>
-    {[...todosStore.todos.entries()].map(([id, todo]) => (
-      <TodoComponent key={id} todo={todo} />
+    {[...todosStore.todos.entries()].map(([id]) => (
+      <TodoComponent key={id} id={id} />
     ))}
 
     <div>
@@ -83,4 +99,5 @@ const App = observer(() => (
     </div>
   </div>
 ));
+
 export default App;
