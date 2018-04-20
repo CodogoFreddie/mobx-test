@@ -23,7 +23,7 @@ class Todo {
   @observable authorId;
   @observable loading = true;
 
-  shouldSave = true;
+  shouldSave = false;
 
   constructor({ id, data }) {
     if (id) {
@@ -57,18 +57,10 @@ class Todo {
     return usersStore.getUserById(this.authorId);
   }
 
-  @action
   loadDataFromServer = () => {
-    getTodoData(this.id).then(({ done, text, authorId }) => {
-      this.shouldSave = false;
-
-      this.done = done;
-      this.text = text;
-      this.authorId = authorId;
-
-      this.loading = false;
-      this.shouldSave = true;
-    });
+    getTodoData(this.id)
+      .then(todo => ({ ...todo, id: this.id, loading: false }))
+      .then(this.hydrate);
   };
 
   @action

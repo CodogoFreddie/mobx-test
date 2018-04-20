@@ -31,17 +31,15 @@ class User {
     return todosStore.getTodosByAuthorId(this.id);
   }
 
-  @action
   loadDataFromServer = () => {
-    getUserData(this.id).then(({ name }) => {
-      this.name = name;
-
-      this.loading = false;
-    });
+    getUserData(this.id)
+      .then(user => ({ ...user, id: this.id, loading: false }))
+      .then(this.hydrate);
   };
 
   @action
-  hydrate = ({ name, loading }) => {
+  hydrate = ({ id, name, loading }) => {
+    this.id = id;
     this.name = name;
     this.loading = loading;
   };
